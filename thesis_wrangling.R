@@ -61,15 +61,12 @@ setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[10]]))
 setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[11]]))
 
 # aggregate to the strata (neighborhood) level
-
-
 # chs_data_all <- Reduce(function(...) merge(..., all = TRUE), chs_datalist2)
-
-
 
 ############# MAKE UHF NEIGHBORHOOD AND ZIP CODE MERGE FILE ############# 
 
 library(dplyr)
+library(tidyr)
 # Bronx
 "Crotona - Tremont" <- c(10453, 10457, 10460)
 "Fordham - Bronx Park" <- c(10458, 10467, 10468)
@@ -209,27 +206,101 @@ Staten <- Staten[!duplicated(Staten), ]
 
 # Merge all boroughs zip code and UHF neighbrhood data
 uhf_zips <- rbind(Bronx, Manhattan, Queens, Brooklyn, Staten)
+write.csv(uhf_zips, file = "uhf_zips.csv")
 
 ############# MERGE SALES DATA ############# 
 
 # ruby script already changed .xls files to .csv and merged for each year
-library(readr)
-data_sales <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/data_sales/sum-data-neighborhood.csv")
+library(readr) 
+data_sales_zips <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/data_wrangling/sum-data-zip.csv")
 
+colnames(data_sales_zips) <- c("year", "zip", "sale_amount")
+data_sales_zips$zip <- as.integer(data_sales_zips$zip)
+
+# merge sales data and uhf neighborhood data to get sales at uhf neighborhood level
+### For some reason, 2003 data wasn't included...for prelim analysis, removing 2003
+chs_datalist3 <- chs_datalist2[-12]
+save(chs_datalist3, file = "chs_datalist3.RData")
+load("chs_datalist3.RData")
+# For each df in chs datalist, get proportions at the strata (neighborhood level)
+colnames(chs_datalist3$chs2009)
+# [1] "year"           "agegroup"       "sex"            "newrace"        "bthregion"      "usborn"         "education"      "demog"         
+# [9] "hhsize"         "strata"         "wt"             "neighpovgroup"  "athomelanguage" "employment"    
+
+# APPLY WEIGHTS BEFORE CALCULATING THE FOLLOWING PROPORTIONS BY STRATA
+# 34 strata pre-2008 and 35 strata post-2008?
+chs_uhf_level <- lapply(chs_datalist3, function(x) {
+  x %>%
+    group_by(strata) %>%
+    mutate(males = ifelse(sex == 1, 1 * wt, 0),
+           blacks = ifelse(newrace == 2, 1 * wt, 0),
+           foreigns = ifelse(usborn == 2, 1 * wt, 0),
+           low_educs = ifelse(education == 1, 1 * wt, 0),
+           unemploy = ifelse(employment == 3, 1 * wt, 0)) %>%
+    summarize(n = sum(wt),
+              freq = 100 * (n / sum(n)),
+              n_male = sum(males, na.rm = TRUE),
+              prop_male = 100 * (sum(males, na.rm = TRUE) / n),
+              n_black = sum(blacks, na.rm = TRUE),
+              prop_black = 100 * (sum(blacks, na.rm = TRUE) / n),
+              n_foreigns = sum(foreigns, na.rm = TRUE),
+              prop_foreign = 100 * (sum(foreigns, na.rm = TRUE) / n),
+              n_low_educ = sum(low_educs, na.rm = TRUE),
+              prop_less_hs = 100 * (sum(low_educs, na.rm = TRUE) / n),
+              n_unemployed = sum(unemploy, na.rm = TRUE),
+              prop_unmployed = 100 * (sum(unemploy, na.rm = TRUE) / n))
+})
+summary(chs_uhf_level$chs2014)
+
+# Read in uhf neighborhood names
+uhf_names <- read_csv("uhf_strata_names_merge.csv")
+chs_uhf_level <- lapply(chs_uhf_level, function(x) merge(x, uhf_names, by.x = "strata", by.y = "strata"))
+lapply(chs_uhf_level, head) # check that numbers are right, first 6 rows
+lapply(chs_uhf_level, tail) # check numbers are right, last 6 rows
+lapply(chs_uhf_level, NROW) # check that number of stratas are consistent
 
 ############# MERGE CRIME DATA ############# 
+# First need to get crimes at UHF neighborhood level
+felonies_df <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/NYPD_7_Major_Felony_Incidents.csv")
+felonies_2002_to_2014 <- felonies_df %>%
+  select(-`Jurisdiction`, -starts_with("Comp")) %>%
+  filter(`Occurrence Year` > 2001 & `Occurrence Year` < 2015)
+write.csv(felonies_2002_to_2014, file = "/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/felonies_2002_to_2014.csv")
+# Loaded in felonies table into QGIS and did location merge with UHF neighborhood shape file to add neighborhoods to felonies table
+# to read in only last 2 columns: read.csv(file="result1", sep=" ", colClasses=c("NULL", NA, NA))
 
-
-
-
-
+felonies_with_uhf <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/felonies_with_uhf.csv")
 
 ############# MERGE ALL DATA ############# 
 
+# recode uhf codes in chs data so its compatiable with felonies uhf codes
 
 
-############# IMPORTANT DATA NOTES ############# 
 
+############# RELEVANT CODEBOOK EXTRACTS ############# 
+
+# get proportion of each sex
+## 1=male; 2=female
+# get proportion of each race
+## 1=White Non-Hispanic ; 2=Black Non-Hispanic ; 3=Hispanic ; 4=Asian/PI Non-Hispanic ; 5=Other Non-Hispanic
+# get proportion of foreign born
+## 1 = usborn; 2 = foreign born
+# get proportions of each education levels
+## 1=Less than HS ; 2=High school grad ; 3=Some college ; 4=College graduate
+# get proportions of poverty group
+# Neighborhood poverty;
+# percent of zip code
+# population living
+# below 100% FPL per
+# American Community
+# Survey, 2008-2012
+# 1= 0 - <10% (low pov) 1837 2=10 - <20% 2699 3=20 - <30% 2095 4=30 - <100% (very hi)
+# get proportions of age
+## 1=18-24yrs ; 2=25-44 yrs ; 3=45-64 yrs ; 4=65+ yrs
+
+# get proportions of at home language? REMOVE THIS var
+# remove demog - it actually is the age var
+# Employment
 
 # 2002-04:
 #   neighpovgroup4_2000
@@ -256,8 +327,7 @@ data_sales <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/dat
 #   2012: employment12
 #   2013: employment13
 #   
-#   The response order for Q8.13 differs from the order of responses in formatted frequencies.Employment12 was renumbered so that
-#   response options would be consistent with order in prior years
+#   The response order for Q8.13 differs from the order of responses in formatted frequencies.Employment12 was renumbered so that response options would be consistent with order in prior years
 #   
 #   1=Employed for wages/salary
 #   2=Self-employed
