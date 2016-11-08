@@ -60,8 +60,6 @@ setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[9]]))
 setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[10]]))
 setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[11]]))
 
-# aggregate to the strata (neighborhood) level
-# chs_data_all <- Reduce(function(...) merge(..., all = TRUE), chs_datalist2)
 
 ############# MAKE UHF NEIGHBORHOOD AND ZIP CODE MERGE FILE ############# 
 
@@ -208,25 +206,29 @@ Staten <- Staten[!duplicated(Staten), ]
 uhf_zips <- rbind(Bronx, Manhattan, Queens, Brooklyn, Staten)
 write.csv(uhf_zips, file = "uhf_zips.csv")
 
-############# MERGE SALES DATA ############# 
+############# PREP SALES DATA ############# 
 
 # ruby script already changed .xls files to .csv and merged for each year
 library(readr) 
 data_sales_zips <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/data_wrangling/sum-data-zip.csv")
-
+uhf_zips <- read_csv("uhf_zips.csv")
 colnames(data_sales_zips) <- c("year", "zip", "sale_amount")
 data_sales_zips$zip <- as.integer(data_sales_zips$zip)
+table(duplicated(data_sales_zips)) # check for duplicates
+data_sales <- left_join(data_sales_zips, uhf_zips[, -1], by = c("zip" = "zip"))
 
-# merge sales data and uhf neighborhood data to get sales at uhf neighborhood level
+# aggregate sales to uhf level
+data_sales_uhf <- data_sales %>%
+  group_by(year, uhf) %>% 
+  summarize(n_sales = n(),
+            total_sales_uhf = sum(sale_amount))
+
 ### For some reason, 2003 data wasn't included...for prelim analysis, removing 2003
 chs_datalist3 <- chs_datalist2[-12]
 save(chs_datalist3, file = "chs_datalist3.RData")
 load("chs_datalist3.RData")
-# For each df in chs datalist, get proportions at the strata (neighborhood level)
-colnames(chs_datalist3$chs2009)
-# [1] "year"           "agegroup"       "sex"            "newrace"        "bthregion"      "usborn"         "education"      "demog"         
-# [9] "hhsize"         "strata"         "wt"             "neighpovgroup"  "athomelanguage" "employment"    
 
+# For each df in chs datalist, get proportions at the strata (neighborhood level)
 # APPLY WEIGHTS BEFORE CALCULATING THE FOLLOWING PROPORTIONS BY STRATA
 # 34 strata pre-2008 and 35 strata post-2008?
 chs_uhf_level <- lapply(chs_datalist3, function(x) {
@@ -238,7 +240,7 @@ chs_uhf_level <- lapply(chs_datalist3, function(x) {
            low_educs = ifelse(education == 1, 1 * wt, 0),
            unemploy = ifelse(employment == 3, 1 * wt, 0)) %>%
     summarize(n = sum(wt),
-              freq = 100 * (n / sum(n)),
+              year = mean(year),
               n_male = sum(males, na.rm = TRUE),
               prop_male = 100 * (sum(males, na.rm = TRUE) / n),
               n_black = sum(blacks, na.rm = TRUE),
@@ -254,11 +256,12 @@ summary(chs_uhf_level$chs2014)
 
 # Read in uhf neighborhood names
 uhf_names <- read_csv("uhf_strata_names_merge.csv")
+uhf_names$X4 <- NULL
 chs_uhf_level <- lapply(chs_uhf_level, function(x) merge(x, uhf_names, by.x = "strata", by.y = "strata"))
 lapply(chs_uhf_level, head) # check that numbers are right, first 6 rows
 lapply(chs_uhf_level, tail) # check numbers are right, last 6 rows
 lapply(chs_uhf_level, NROW) # check that number of stratas are consistent
-
+save(chs_uhf_level, file = "chs_uhf_level.RData")
 ############# MERGE CRIME DATA ############# 
 # First need to get crimes at UHF neighborhood level
 felonies_df <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/NYPD_7_Major_Felony_Incidents.csv")
@@ -271,11 +274,31 @@ write.csv(felonies_2002_to_2014, file = "/Users/jsk474/Google Drive/QMSS/QMSS-Fa
 
 felonies_with_uhf <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/felonies_with_uhf.csv")
 
+# Aggregate felonies up to uhf level
+felonies_uhf_level <- felonies_with_uhf %>%
+  select(Occurren_3, Offense, UHF_CODE) %>%
+  rename(year = Occurren_3) %>%
+  group_by(UHF_CODE, year) %>%
+  mutate(n_felonies_uhf = n()) %>%
+  group_by(UHF_CODE, Offense, year) %>%
+  mutate(n_offense_uhf = n(),
+         prop_offense_uhf = 100 * (n_offense_uhf / n_felonies_uhf)) # create rates of each offense type by strata
+
+felonies_uhf_level <- felonies_uhf_level[!duplicated(felonies_uhf_level), ]
+felonies_uhf_level <- felonies_uhf_level[order(felonies_uhf_level$year, felonies_uhf_level$UHF_CODE, felonies_uhf_level$Offense), ]
+
 ############# MERGE ALL DATA ############# 
+# Combine all chs dfs
+chs_data_all <- Reduce(function(...) merge(..., all = TRUE), chs_uhf_level)
+chs_data_all <- chs_data_all[order(chs_data_all$strata, chs_data_all$year), ]
 
-# recode uhf codes in chs data so its compatiable with felonies uhf codes
+head(felonies_uhf_level)
+felonies_chs_df <- right_join(felonies_uhf_level, chs_data_all, 
+                              by = c("UHF_CODE" = "uhf_code", "year" = "year"))
+felonies_chs_df <- felonies_chs_df[order(felonies_chs_df$year, felonies_chs_df$UHF_CODE), ]
+felones_chs_sales <- left_join(felonies_chs_df, data_sales_uhf, by = c("year" = "year", "UHF_CODE" = "uhf"))
 
-
+setdiff(felonies_chs_df$neighborhood_name, data_sales_uhf$uhf)
 
 ############# RELEVANT CODEBOOK EXTRACTS ############# 
 
