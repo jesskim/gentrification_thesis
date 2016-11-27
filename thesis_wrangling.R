@@ -4,7 +4,7 @@
 
 ############# MERGE CHS DATA ############# 
 setwd("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/data_chs")
-setwd("/Users/jsk2225/Downloads/data_chs")
+setwd("/Users/jsk2225/Downloads")
 
 # Read in all datasets using haven package
 library(haven)
@@ -66,25 +66,21 @@ setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[11]]))
 library(dplyr)
 library(tidyr)
 # Bronx
-"Crotona - Tremont" <- c(10453, 10457, 10460)
-"Fordham - Bronx Park" <- c(10458, 10467, 10468)
-"High Bridge - Morrisania" <- c(10451, 10452, 10456)
-"Hunts Point - Mott Haven" <- c(10454, 10455, 10459, 10474)
+"South Bronx" <- c(10451, 10452, 10453, 10454, 10455, 10456, 10457, 10459, 10460, 10474)
+"Fordham-Bronx P" <- c(10458, 10467, 10468)
 "Kingsbridge - Riverdale" <- c(10463, 10471)
-"Northeast Bronx" <- c(10466, 10469, 10470, 10475)
-"Pelhem - Throgs Neck" <- c(10461, 10462,10464, 10465, 10472, 10473)
+"NE Bronx" <- c(10466, 10469, 10470, 10475)
+"Pelham-Throgs Neck" <- c(10461, 10462,10464, 10465, 10472, 10473)
 bronx_nh <- list(
-  Crotona_Tremont = `Crotona - Tremont`, 
-  Fordham_Bronx_Park = `Fordham - Bronx Park`, 
-  High_Bridge_Morrisania = `High Bridge - Morrisania`, 
-  Hunts_Point_Mott_Haven = `Hunts Point - Mott Haven`, 
-  Kingsbridge_Riverdale = `Kingsbridge - Riverdale`, 
-  Northeast_Bronx = `Northeast Bronx`, 
-  Pelhem_Throgs_Neck = `Pelhem - Throgs Neck`)
+  `South Bronx` = `South Bronx`, 
+  `Fordham-Bronx Pk` = `Fordham-Bronx P`, 
+  `Kingsbridge` = `Kingsbridge - Riverdale`, 
+  `NE Bronx` = `NE Bronx`, 
+  `Pelham-Throgs Neck` = `Pelham-Throgs Neck`)
 Bronx <- as.data.frame(do.call(rbind, bronx_nh))
 Bronx$uhf <- row.names(Bronx)
 Bronx$borough <- "Bronx"
-Bronx <- gather(Bronx, "uhf", "zip", 1:6)
+Bronx <- gather(Bronx, "uhf", "zip", 1:10)
 Bronx[, 3] <- rm()
 
 # Brooklyn
@@ -92,113 +88,99 @@ Brooklyn <- c("Bedford Stuyvesant - Crown Heights", "Bensonhurst - Bay Ridge", "
 "Bedford Stuyvesant - Crown Heights" <- c(11212, 11213, 11216, 11233, 11238)
 "Bensonhurst - Bay Ridge" <- c(11209, 11214, 11228)
 "Borough Park" <- c(11204, 11218, 11219, 11230)
-"Canarsie - Flatlands" <- c(11234, 11236, 11239)
+"Flatbush-Canarsie" <- c(11234, 11236, 11239, 11203, 11210, 11225, 11226)
 "Coney Island - Sheepshead Bay" <- c(11223, 11224, 11229, 11235)
 "Downtown - Heights - Slope" <- c(11201, 11205, 11215, 11217, 11231)
-"East Flatbush - Flatbush" <- c(11203, 11210, 11225, 11226)
 "East New York" <- c(11207, 11208)
 "Greenpoint" <- c(11211, 11222)
 "Sunset Park" <- c(11220, 11232)
 "Williamsburg - Bushwick" <- c(11206, 11221, 11237)
 
 brooklyn_nh <- list(
-  Bedford_Stuyvesant_Crown_Heights = `Bedford Stuyvesant - Crown Heights`,
-  Bensonhurst_Bay_Ridge 			= `Bensonhurst - Bay Ridge`,
-  Borough_Park 						= `Borough Park`,
-  Canarsie_Flatlands 				= `Canarsie - Flatlands`,
-  Coney_Island_Sheepshead_Bay 	= `Coney Island - Sheepshead Bay`,
-  Downtown_Heights_Slope 		= `Downtown - Heights - Slope`,
-  East_Flatbush_Flatbush 			= `East Flatbush - Flatbush`,
-  East_New_York 					= `East New York`,
-  Greenpoint 					= `Greenpoint`,
-  Sunset_Park 						= `Sunset Park`,
-  Williamsburg_Bushwick 			 = `Williamsburg - Bushwick`)
+  `Bed Stuy-Crown Heights` = `Bedford Stuyvesant - Crown Heights`,
+  `Bensonhurst`	= `Bensonhurst - Bay Ridge`,
+  `Borough Park` = `Borough Park`,
+  `Flatbush-Canarsie` = `Flatbush-Canarsie`,
+  `Coney Island` = `Coney Island - Sheepshead Bay`,
+  `Downtown-Heights-Slope` = `Downtown - Heights - Slope`,
+  `East New York`	= `East New York`,
+  `Greenpoint` = `Greenpoint`,
+  `Sunset Park`	= `Sunset Park`,
+  `Williamsburg-Bushwk` = `Williamsburg - Bushwick`)
 
 Brooklyn <- as.data.frame(do.call(rbind, brooklyn_nh))
 Brooklyn$uhf <- row.names(Brooklyn)
 Brooklyn$borough <- "Brooklyn"
-Brooklyn <- gather(Brooklyn, "uhf", "zip", 1:5)
+Brooklyn <- gather(Brooklyn, "uhf", "zip", 1:7)
 Brooklyn[, 3] <- rm()
 Brooklyn <- Brooklyn[!duplicated(Brooklyn), ]
 
 # Manhattan
 "Central Harlem - Morningside Heights" <- c(10026, 10027, 10030, 10037, 10039)
-"Chelsea - Clinton" <- c(10001, 10011, 10018, 10019, 10020, 10036)
+"Chelsea - Clinton" <- c(10001, 10011, 10012, 10013, 10014, 10018, 10019, 10020, 10036)
 "East Harlem" <- c(10029, 10035)
-"Gramercy Park - Murray Hill" <- c(10010, 10016, 10017, 10022)
-"Greenwich Village - Soho" <- c(10012, 10013, 10014)
-"Lower Manhattan" <- c(10004, 10005, 10006, 10007, 10038, 10280)
-"Union Square - Lower East Side" <- c(10002, 10003, 10009)
-"Upper East Side" <- c(10021, 10028, 10044, 10128)
-"Upper West Side" <- c(10023, 10024, 10025)
+"Gramercy Park - Murray Hill" <- c(10010, 10016, 10017, 10021, 10022, 10028, 10044, 
+                                   10065, 10075, 10128, 10162, 10165, 10170, 10171)
+"Lower Manhattan" <- c(10002, 10003, 10004, 10005, 10006, 10007, 10009, 10038, 10048, 10280, 10282)
+"Upper West Side" <- c(10023, 10024, 10025, 10069)
 "Washington Heights - Inwood" <- c(10031, 10032, 10033, 10034, 10040)
 
 Manhattan_nh <- list(
-  Central_Harlem_Morningside_Height = `Central Harlem - Morningside Heights`,
-  Chelsea_Clinton = `Chelsea - Clinton`,
-  East_Harlem = `East Harlem`,
-  Gramercy_Park_Murray_Hill = `Gramercy Park - Murray Hill`,
-  Greenwich_Village_Soho = `Greenwich Village - Soho`,
-  Lower_Manhattan = `Lower Manhattan`,
-  Union_Square_Lower_East_Side = `Union Square - Lower East Side`,
-  Upper_East_Side = `Upper East Side`,
-  Upper_West_Side = `Upper West Side`,
-  Washington_Heights_Inwood = `Washington Heights - Inwood`)
+  `Central Harlem` = `Central Harlem - Morningside Heights`,
+  `Chelsea-Village` = `Chelsea - Clinton`,
+  `East Harlem` = `East Harlem`,
+  `Upper East Side-Gramercy ` = `Gramercy Park - Murray Hill`,
+  `Lower Manhatten` = `Lower Manhattan`,
+  `Upper West Side` = `Upper West Side`,
+  `Wash Heights-Inwood` = `Washington Heights - Inwood`)
 
 Manhattan <- as.data.frame(do.call(rbind, Manhattan_nh))
 Manhattan$uhf <- row.names(Manhattan)
 Manhattan$borough <- "Manhattan"
-Manhattan <- gather(Manhattan, "uhf", "zip", 1:6)
+Manhattan <- gather(Manhattan, "uhf", "zip", 1:14)
 Manhattan[, 3] <- rm()
 Manhattan <- Manhattan[!duplicated(Manhattan), ]
 
 # Queens
-"Bayside - Little Neck" 	 <- c(11361, 11362, 11363, 11364)
+"Bayside - Little Neck" 	 <- c(11361, 11362, 11363, 11364, 11365, 11366, 11367)
 "Flushing - Clearview" 	 	 <- c(11354, 11355, 11356, 11357, 11358, 11359, 11360)
-"Fresh Meadows" 			 <- c(11365, 11366, 11367)
 "Jamaica" 					 <- c(11412, 11423, 11432, 11433, 11434, 11435, 11436)
-"Long Island City - Astoria" <- c(11101, 11102, 11103, 11104, 11105, 11106)
+"Long Island City - Astoria" <- c(11101, 11102, 11103, 11104, 11105, 11106, 
+                                  11368, 11369, 11370, 11372, 11373, 11377, 11378)
 "Ridgewood - Forest Hills" 	 <- c(11374, 11375, 11379, 11385)
 "Rockaway" 					 <- c(11691, 11692, 11693, 11694, 11695, 11697)
 "Southeast Queens" 			 <- c(11004, 11005, 11411, 11413, 11422, 11426, 11427, 11428, 11429)
 "Southwest Queens"			 <- c(11414, 11415, 11416, 11417, 11418, 11419, 11420, 11421)
-"West Queens"				 <- c(11368, 11369, 11370, 11372, 11373, 11377, 11378)
 
 Queens_nh <- list(
-  Bayside_Little_Neck 	 = `Bayside - Little Neck`, 	
-  Flushing_Clearview 	 	 = `Flushing - Clearview`, 	 	
-  Fresh_Meadows 			 = `Fresh Meadows`, 			
-  Jamaica 					 = `Jamaica`, 					
-  Long_Island_City_Astoria = `Long Island City - Astoria`,
-  Ridgewood_Forest_Hills 	 = `Ridgewood - Forest Hills`, 	
-  Rockaway 					 = `Rockaway`, 					
-  Southeast_Queens 			 = `Southeast Queens`, 			
-  Southwest_Queens			 = `Southwest Queens`,			
-  West_Queens				 = `West Queens`)		
+  `Bayside-Meadows` = `Bayside - Little Neck`, 	
+  `Flushing` = `Flushing - Clearview`, 	 	
+  `Jamaica` = `Jamaica`, 					
+  `W Queens-Long Island City` = `Long Island City - Astoria`,
+  `Ridgewood` = `Ridgewood - Forest Hills`, 	
+  `Rockaway` = `Rockaway`, 					
+  `SE Queens` = `Southeast Queens`, 			
+  `SW Queens` = `Southwest Queens`)
 
 Queens <- as.data.frame(do.call(rbind, Queens_nh))
 Queens$uhf <- row.names(Queens)
 Queens$borough <- "Queens"
-Queens <- gather(Queens, "uhf", "zip", 1:9)
+Queens <- gather(Queens, "uhf", "zip", 1:13)
 Queens[, 3] <- rm()
 Queens <- Queens[!duplicated(Queens), ]
 
 # Staten Island
-"Port Richmond" <- c(10302, 10303, 10310)
-"South Beach - Tottenville" <- c(10306, 10307, 10308, 10309, 10312)
-"Stapleton - St. George" <- c(10301, 10304, 10305)
-"Willowbrook" <- c(10314)
+"Port Richmond" <- c(10301, 10302, 10303, 10304, 10305, 10310 )
+"South Beach - Tottenville" <- c(10306, 10307, 10308, 10309, 10312, 10314)
 
 Staten_nh <- list(
-  Port_Richmond = `Port Richmond`,
-  South_Beach_Tottenville = `South Beach - Tottenville`,
-  Stapleton_St_George = `Stapleton - St. George`,
-  Willowbrook = `Willowbrook`)
+  `Northern SI` = `Port Richmond`,
+  `Southern SI` = `South Beach - Tottenville`)
 
 Staten <- as.data.frame(do.call(rbind, Staten_nh))
 Staten$uhf <- row.names(Staten)
 Staten$borough <- "Staten"
-Staten <- gather(Staten, "uhf", "zip", 1:5)
+Staten <- gather(Staten, "uhf", "zip", 1:6)
 Staten[, 3] <- rm()
 Staten <- Staten[!duplicated(Staten), ]
 
@@ -222,6 +204,7 @@ data_sales_uhf <- data_sales %>%
   group_by(year, uhf) %>% 
   summarize(n_sales = n(),
             total_sales_uhf = sum(sale_amount))
+save(data_sales_uhf, file = "data_sales_uhf.RData")
 
 ### For some reason, 2003 data wasn't included...for prelim analysis, removing 2003
 chs_datalist3 <- chs_datalist2[-12]
@@ -250,7 +233,7 @@ chs_uhf_level <- lapply(chs_datalist3, function(x) {
               n_low_educ = sum(low_educs, na.rm = TRUE),
               prop_less_hs = 100 * (sum(low_educs, na.rm = TRUE) / n),
               n_unemployed = sum(unemploy, na.rm = TRUE),
-              prop_unmployed = 100 * (sum(unemploy, na.rm = TRUE) / n))
+              prop_unemployed = 100 * (sum(unemploy, na.rm = TRUE) / n))
 })
 summary(chs_uhf_level$chs2014)
 
@@ -262,6 +245,7 @@ lapply(chs_uhf_level, head) # check that numbers are right, first 6 rows
 lapply(chs_uhf_level, tail) # check numbers are right, last 6 rows
 lapply(chs_uhf_level, NROW) # check that number of stratas are consistent
 save(chs_uhf_level, file = "chs_uhf_level.RData")
+
 ############# MERGE CRIME DATA ############# 
 # First need to get crimes at UHF neighborhood level
 felonies_df <- read_csv("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/historical_citywide_crime_complaint_data_by_precinct_2000_2015/NYPD_7_Major_Felony_Incidents.csv")
@@ -289,6 +273,7 @@ felonies_uhf_level <- felonies_uhf_level[order(felonies_uhf_level$year, felonies
 
 ############# MERGE ALL DATA ############# 
 # Combine all chs dfs
+load("chs_uhf_level.RData")
 chs_data_all <- Reduce(function(...) merge(..., all = TRUE), chs_uhf_level)
 chs_data_all <- chs_data_all[order(chs_data_all$strata, chs_data_all$year), ]
 
@@ -296,9 +281,17 @@ head(felonies_uhf_level)
 felonies_chs_df <- right_join(felonies_uhf_level, chs_data_all, 
                               by = c("UHF_CODE" = "uhf_code", "year" = "year"))
 felonies_chs_df <- felonies_chs_df[order(felonies_chs_df$year, felonies_chs_df$UHF_CODE), ]
-felones_chs_sales <- left_join(felonies_chs_df, data_sales_uhf, by = c("year" = "year", "UHF_CODE" = "uhf"))
+setdiff(felonies_chs_df$neighborhood_name, data_sales_uhf$uhf) # check if neighborhood names match (need to rename union square to lower mnhtn)
+felonies_chs_df$neighborhood_name[felonies_chs_df$neighborhood_name == "Union Square"] <- "Lower Manhatten"
+felonies_chs_df$UHF_CODE[felonies_chs_df$neighborhood_name == "Lower Manhatten"] <- 309310
+View(felonies_chs_df)
+save(felonies_chs_df, file = "felonies_chs_df.RData")
+# I think I need to make all NA for crime data as 0, assuming that if there is no data then there was no crime
+felonies_chs_sales <- left_join(felonies_chs_df, data_sales_uhf, by = c("year" = "year", "neighborhood_name" = "uhf"))
+View(felonies_chs_sales)
+save(felonies_chs_sales, file = "felonies_chs_sales.RData")
+load("felonies_chs_sales.RData")
 
-setdiff(felonies_chs_df$neighborhood_name, data_sales_uhf$uhf)
 
 ############# RELEVANT CODEBOOK EXTRACTS ############# 
 
