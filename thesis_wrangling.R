@@ -33,16 +33,21 @@ chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- tolower(colna
 # subset dfs by relevant vars
 library(dplyr)
 chs_datalist2 <- lapply(chs_datalist2, dplyr::select, 
-                        one_of("year", "agegroup", "sex", "newrace", "bthregion2", 
-                               "usborn", "education", "demog17", "hhsize"), 
+                        one_of(c("year", "agegroup", "sex", "newrace", 
+                               "usborn", "education")), 
                         contains("strata", ignore.case = TRUE), 
+                        contains("povertygroup", ignore.case = TRUE), 
                         starts_with("wt", ignore.case = TRUE), 
-                        starts_with("neighpovgroup", ignore.case = TRUE), 
-                        starts_with("athomelanguage", ignore.case = TRUE), 
                         starts_with("employment", ignore.case = TRUE))
 
-# Remove numbers from suffix of var names for merging dfs later
-chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("[[:digit:]]", "", colnames(x)); x})
+# standardize poverty less than 200% FPL vars
+chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("imputed", "", colnames(x)); x})
+
+# Remove numbers from suffix of var names for merging dfs later (repeats twice to get rid of double digits)
+chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("employment[[:digit:]]", "employment", colnames(x)); x})
+chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("employment[[:digit:]]", "employment", colnames(x)); x})
+chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("wt[[:digit:]]", "wt", colnames(x)); x})
+chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("wt[[:digit:]]", "wt", colnames(x)); x})
 
 # Remove suffix "_dual" from weight vars and "_" from vars suffixes
 chs_datalist2 <- lapply(chs_datalist2, function(x) {colnames(x) <- gsub("_dual", "", colnames(x)); x})
@@ -60,9 +65,7 @@ setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[9]]))
 setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[10]]))
 setdiff(colnames(chs_datalist2[[1]]), colnames(chs_datalist2[[11]]))
 
-
 ############# MAKE UHF NEIGHBORHOOD AND ZIP CODE MERGE FILE ############# 
-
 library(dplyr)
 library(tidyr)
 # Bronx
@@ -202,10 +205,11 @@ data_sales <- left_join(data_sales_zips, uhf_zips[, -1], by = c("zip" = "zip"))
 # aggregate sales to uhf level
 data_sales_uhf <- data_sales %>%
   group_by(year, uhf) %>% 
-  summarize(n_sales = n(),
-            total_sales_uhf = sum(sale_amount))
+  dplyr::summarize(n_sales = n(),
+            total_sales_uhf = sum(sale_amount),
+            median_sales_uhf = median(sale_amount, na.rm = TRUE))
 save(data_sales_uhf, file = "data_sales_uhf.RData")
-
+load("data_sales_uhf.RData")
 ### For some reason, 2003 data wasn't included...for prelim analysis, removing 2003
 chs_datalist3 <- chs_datalist2[-12]
 save(chs_datalist3, file = "chs_datalist3.RData")
@@ -221,8 +225,9 @@ chs_uhf_level <- lapply(chs_datalist3, function(x) {
            blacks = ifelse(newrace == 2, 1 * wt, 0),
            foreigns = ifelse(usborn == 2, 1 * wt, 0),
            low_educs = ifelse(education == 1, 1 * wt, 0),
-           unemploy = ifelse(employment == 3, 1 * wt, 0)) %>%
-    summarize(n = sum(wt),
+           unemploy = ifelse(employment == 3, 1 * wt, 0),
+           fpl_under100 = ifelse(povertygroup == 1, 1 * wt, 0)) %>%
+    dplyr::summarize(n = sum(wt),
               year = mean(year),
               n_male = sum(males, na.rm = TRUE),
               prop_male = 100 * (sum(males, na.rm = TRUE) / n),
@@ -233,8 +238,9 @@ chs_uhf_level <- lapply(chs_datalist3, function(x) {
               n_low_educ = sum(low_educs, na.rm = TRUE),
               prop_less_hs = 100 * (sum(low_educs, na.rm = TRUE) / n),
               n_unemployed = sum(unemploy, na.rm = TRUE),
-              prop_unemployed = 100 * (sum(unemploy, na.rm = TRUE) / n))
-})
+              prop_unemployed = 100 * (sum(unemploy, na.rm = TRUE) / n),
+              n_under100fpl = sum(fpl_under100, na.rm = TRUE),
+              prop_under100fpl = 100 * (sum(fpl_under100, na.rm = TRUE) / n))})
 summary(chs_uhf_level$chs2014)
 
 # Read in uhf neighborhood names
@@ -287,11 +293,19 @@ felonies_chs_df$UHF_CODE[felonies_chs_df$neighborhood_name == "Lower Manhatten"]
 View(felonies_chs_df)
 save(felonies_chs_df, file = "felonies_chs_df.RData")
 # I think I need to make all NA for crime data as 0, assuming that if there is no data then there was no crime
-felonies_chs_sales <- left_join(felonies_chs_df, data_sales_uhf, by = c("year" = "year", "neighborhood_name" = "uhf"))
-View(felonies_chs_sales)
+load("felonies_chs_df.RData")
+felonies_chs_sales <- left_join(felonies_chs_df, data_sales_uhf, 
+                                by = c("year" = "year", "neighborhood_name" = "uhf"))
+
 save(felonies_chs_sales, file = "felonies_chs_sales.RData")
 load("felonies_chs_sales.RData")
 
+############# ACESS HOME VALUE DATA FROM NYC DF ############# 
+## INSTALL RODBC package to access .mdb file
+# ## 1. install homebrew and then brew install wget
+# ## 2. Run this code in the shell: brew update && brew install unixODBC && wget "http://cran.r-project.org/src/contrib/RODBC_1.3-14.tar.gz" && R CMD INSTALL RODBC_1.3-14.tar.gz
+# library(RODBC)
+# odbcConnect("/Users/jsk474/Google Drive/QMSS/QMSS-Fall2016/Thesis/AVROLL.mdb", uid="", pwd="")	
 
 ############# RELEVANT CODEBOOK EXTRACTS ############# 
 
@@ -328,6 +342,20 @@ load("felonies_chs_sales.RData")
 #   neighpovgroup4_0711
 # 2013:
 #   neighpovgroup4_0812
+
+## Household poverty in 2003: newpovgrps
+## Household poverty after 2003: imputed_ povertygroup
+# Household annual
+# income from all
+# sources; imputed for
+# those with missing data
+# for
+# povertygroup
+# 1= <100% FPL 
+# 2=100 - <200% FPL 
+# 3=200 - <400% FPL 
+# 4=400 - <600% FPL 
+# 5= >600% FPL
 
 ## year prefix varies for employment var
 # employment14 changes for each year
