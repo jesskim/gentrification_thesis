@@ -304,20 +304,20 @@ dev.off()
 # Structural equation model
 # evaluates the simultaneous causality of gentrification and felony incident rates
 # 
-library(blavaan)
-require(rjags)
-require(lavaan)
-alloffense_sem <- '
-# regressions
-Gentrified ~ propmale + propblack + propforeign + year20082009
-felonies_per1000 ~ propmale + propblack + propforeign + year20082009
-# residual correlations
-Gentrified ~ felonies_per1000
-'
-## unique priors for mv intercepts; parallel chains
-alloffense_sem_fit <- bsem(alloffense_sem, data=felonies_chs_sales_final, test = "none",
-                           jagcontrol=list(method="rjparallel"))
-summary(alloffense_sem_fit, standardized = TRUE, fit.measures = TRUE)
+# library(blavaan)
+# require(rjags)
+# require(lavaan)
+# alloffense_sem <- '
+# # regressions
+# Gentrified ~ propmale + propblack + propforeign + year20082009
+# felonies_per1000 ~ propmale + propblack + propforeign + year20082009
+# # residual correlations
+# Gentrified ~ felonies_per1000
+# '
+# ## unique priors for mv intercepts; parallel chains
+# alloffense_sem_fit <- bsem(alloffense_sem, data=felonies_chs_sales_final, test = "none",
+#                            jagcontrol=list(method="rjparallel"))
+# summary(alloffense_sem_fit, standardized = TRUE, fit.measures = TRUE)
 
 
 ########### property crimes ##############
@@ -491,34 +491,6 @@ dev.off()
 save.image(file = "thesis_12_27.RData")
 load("thesis_12_27.RData")
 
-
-
-
-
-
-2. Specify fθ,y(θ,y|·) consistent with a substantive theory
-• First, you need a mathematical representation of f (θ,y|·) ∝ f (θ)f  y ,...,y |θ,x⊤,...,x⊤ 
-θ,y θ y|θ 1 N 1 N
-θA   
-can take the form fθA (θA)fθB|θA (θB|θA) • Usually,youalsoneedacoderepresentationoffθ,y(θ,y|·)
-3.1 Draw θ from the distribution whose PDF is f (θ) θ
-4. Use draws from the prior predictive distribution to check • Check that this distribution is what you expect Y to be
-• Check that your computer algorithm is working correctly
-
-# POST DATA STEPS
-
-1. Gather data on y1,...,yN and x⊤1 ,...,x⊤N and evaluate
-f (θ|y) ∝ f (θ)f  y ,...,y |θ,x⊤,...,x⊤ ,
-θ|y θ y|θ 1 N 1 N which will usually involve repeatedly drawing from the
-posterior distribution
-
-2. Verify that these purported draws are coherent
-3. Draw from posterior predictive distribution for some x⊤  
-3.1 Take each θ from the distribution whose PDF is f θ |y ( θ | y)   
-⊤ 3.2 Draw each y  from the distribution where fy|θ y|θ,x
-4. Use draws from the posterior predictive distribution to   
-check that g y  is similar to g (y ) for some g () function(s)
-  5. Summarize aspects of the distribution of (functions of) θ
 
 # put data into list
 
